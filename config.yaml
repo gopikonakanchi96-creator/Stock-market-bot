@@ -1,0 +1,145 @@
+app_name: AI Multi-Currency Stock Trading Bot
+base_currency: USD
+paper_trading: true
+live_trading: false
+
+paper_trading_config:
+  starting_balances:
+    USD: 100000
+    INR: 1000000
+  commission_per_order: 1
+  slippage_bps: 5
+
+market_data:
+  provider_priority:
+    - Polygon
+    - Finnhub
+    - Alpha Vantage
+    - Twelve Data
+
+news:
+  provider_priority:
+    - Finnhub News
+    - MarketWatch
+    - Yahoo Finance
+    - Financial Modeling Prep
+    - RSS feeds
+
+markets:
+  US:
+    enabled: true
+    country: United States
+    currency: USD
+    exchanges:
+      - NYSE
+      - NASDAQ
+    broker: alpaca
+    timezone: America/New_York
+  India:
+    enabled: true
+    country: India
+    currency: INR
+    exchanges:
+      - NSE
+      - BSE
+    broker: indian_placeholder
+    timezone: Asia/Kolkata
+  Canada:
+    enabled: false
+    country: Canada
+    currency: CAD
+    exchanges:
+      - TSX
+    broker: placeholder
+    timezone: America/Toronto
+  UK:
+    enabled: false
+    country: United Kingdom
+    currency: GBP
+    exchanges:
+      - LSE
+    broker: placeholder
+    timezone: Europe/London
+  Europe:
+    enabled: false
+    country: Europe
+    currency: EUR
+    exchanges:
+      - XETRA
+      - EURONEXT
+    broker: placeholder
+    timezone: Europe/Berlin
+  Japan:
+    enabled: false
+    country: Japan
+    currency: JPY
+    exchanges:
+      - TSE
+    broker: placeholder
+    timezone: Asia/Tokyo
+  Australia:
+    enabled: false
+    country: Australia
+    currency: AUD
+    exchanges:
+      - ASX
+    broker: placeholder
+    timezone: Australia/Sydney
+  Crypto:
+    enabled: false
+    country: Global
+    currency: USD
+    exchanges:
+      - CRYPTO
+    broker: placeholder
+    timezone: UTC
+  Forex:
+    enabled: false
+    country: Global
+    currency: USD
+    exchanges:
+      - FX
+    broker: placeholder
+    timezone: UTC
+
+watchlists:
+  US:
+    - AAPL
+    - MSFT
+    - NVDA
+    - TSLA
+    - AMZN
+    - META
+    - GOOGL
+  India:
+    - RELIANCE
+    - TCS
+    - INFY
+    - HDFCBANK
+    - ICICIBANK
+
+risk:
+  risk_per_trade: 2%
+  max_open_positions: 10
+  max_exposure_per_stock: 15%
+  max_exposure_per_sector: 30%
+  max_daily_loss: 3%
+  max_weekly_loss: 6%
+  max_monthly_drawdown: 10%
+  max_trades_per_day: 20
+  emergency_stop: false
+
+strategy:
+  min_news_score: 25
+  min_ai_confidence: 0.55
+  max_rsi_for_buy: 70
+  min_risk_score: 0.50
+  fast_ma_window: 10
+  slow_ma_window: 30
+  rsi_window: 14
+  atr_window: 14
+  position_sizing: risk_based
+  default_trade_amount: 1000
+
+database_url: postgresql+psycopg://trader:trader@postgres:5432/trading_bot
+redis_url: redis://redis:6379/0

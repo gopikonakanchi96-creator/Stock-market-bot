@@ -1,0 +1,37 @@
+watchlist:
+  - AAPL
+  - MSFT
+  - NVDA
+  - TSLA
+  - AMZN
+  - META
+  - GOOGL
+
+broker:
+  name: alpaca
+  mode: paper
+  allow_live_trading: false
+  alpaca_paper_base_url: "https://paper-api.alpaca.markets"
+  alpaca_live_base_url: "https://api.alpaca.markets"
+
+risk:
+  risk_per_trade_pct: 0.01
+  max_open_positions: 5
+  max_exposure_per_stock_pct: 0.20
+  max_daily_loss_pct: 0.03
+  max_trades_per_day: 8
+  default_trade_notional: 1000
+
+strategy:
+  sentiment_buy_threshold: 25
+  sentiment_sell_threshold: -60
+  max_rsi_for_buy: 70
+  fast_ma_window: 10
+  slow_ma_window: 30
+  rsi_window: 14
+  volume_average_window: 20
+  min_news_confidence: 0.40
+
+database_path: "stock_trading_bot/trading_bot.sqlite3"
+emergency_stop: false
+
