@@ -24,6 +24,7 @@ def main() -> None:
     parser.add_argument("--market", default="US")
     parser.add_argument("--symbol", default="AAPL")
     parser.add_argument("--to", default="gkkcsp2023@gmail.com")
+    parser.add_argument("--persist", action="store_true", help="Write runtime decisions to PostgreSQL")
     args = parser.parse_args()
     if args.mode == "check-alpaca":
         print(json.dumps(check_alpaca_paper_connection(), indent=2))
@@ -82,7 +83,7 @@ def main() -> None:
             )
         )
     else:
-        print(json.dumps(run_sample_paper_session(args.config), indent=2, default=str))
+        print(json.dumps(run_sample_paper_session(args.config, enable_repository=args.persist), indent=2, default=str))
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from trading_bot.app.domain import Instrument, OrderRequest, OrderSide, SignalAc
 from trading_bot.config.env import load_env_file
 from trading_bot.config.settings import AppSettings, load_settings
 from trading_bot.currency.service import CurrencyService
+from trading_bot.database.repositories import TradingRepository
 from trading_bot.execution.order_service import ExecutionService
 from trading_bot.market_data.service import EnterpriseMarketDataService
 from trading_bot.monitoring.logging import configure_logging, get_logger
@@ -23,6 +24,7 @@ class PaperTradingSession:
         risk: PortfolioRiskManager,
         signal_engine: AISignalEngine,
         execution: ExecutionService,
+        repository: TradingRepository | None = None,
     ) -> None:
         self.settings = settings
         self.market_data = market_data
@@ -30,6 +32,7 @@ class PaperTradingSession:
         self.risk = risk
         self.signal_engine = signal_engine
         self.execution = execution
+        self.repository = repository
         self.logger = get_logger("paper_session")
 
     def _instrument(self, market_code: str, symbol: str) -> Instrument:
@@ -103,6 +106,26 @@ class PaperTradingSession:
         }
         if hasattr(self.logger, "info"):
             self.logger.info("strategy_decision", **payload) if self.logger.__class__.__module__.startswith("structlog") else self.logger.info(payload)
+        if self.repository:
+            self.repository.log_news(symbol, news_signal)
+            self.repository.log_signal(symbol, decision)
+            self.repository.log_strategy_decision(payload)
+            if not risk_preview.allowed:
+                self.repository.log_risk_event("warning", risk_preview.reason, payload)
+            if result and indicators:
+                order_id = self.repository.log_order_result(
+                    symbol=symbol,
+                    side=OrderSide.BUY.value,
+                    quantity=risk_preview.quantity,
+                    price=indicators.current_price,
+                    currency=market.currency,
+                    reason=decision.explanation,
+                    result=result,
+                )
+                self.repository.log_trade(order_id, realized_pl=0.0)
+                position = self.execution.positions.get(symbol)
+                if position:
+                    self.repository.upsert_position(position)
         return payload
 
     def run_once(self) -> list[dict[str, object]]:
@@ -112,10 +135,17 @@ class PaperTradingSession:
                 continue
             for symbol in self.settings.watchlists.get(market_code, []):
                 decisions.append(self.analyze_symbol(market_code, symbol))
+        if self.repository:
+            base_value = sum(
+                self.execution.broker.cash.get(currency, 0.0)
+                for currency in self.execution.broker.cash
+                if currency == self.settings.base_currency
+            )
+            self.repository.log_portfolio_history(self.settings.base_currency, base_value)
         return decisions
 
 
-def build_application_context(config_path: str = "config.yaml") -> dict[str, object]:
+def build_application_context(config_path: str = "config.yaml", enable_repository: bool = False) -> dict[str, object]:
     load_env_file()
     settings = load_settings(config_path)
     market_data = EnterpriseMarketDataService(settings.strategy, settings.market_data_provider_priority)
@@ -127,7 +157,8 @@ def build_application_context(config_path: str = "config.yaml") -> dict[str, obj
     currency = CurrencyService(settings.base_currency)
     portfolio = PortfolioService(currency)
     balances = broker.balances()
-    session = PaperTradingSession(settings, market_data, news, risk, signal_engine, execution)
+    repository = TradingRepository.from_config(config_path) if enable_repository else None
+    session = PaperTradingSession(settings, market_data, news, risk, signal_engine, execution, repository)
     return {
         "settings": settings,
         "market_data": market_data,
@@ -139,10 +170,11 @@ def build_application_context(config_path: str = "config.yaml") -> dict[str, obj
         "portfolio": portfolio,
         "balances": balances,
         "paper_session": session,
+        "repository": repository,
     }
 
 
-def run_sample_paper_session(config_path: str = "config.yaml") -> list[dict[str, object]]:
+def run_sample_paper_session(config_path: str = "config.yaml", enable_repository: bool = False) -> list[dict[str, object]]:
     configure_logging()
-    context = build_application_context(config_path)
+    context = build_application_context(config_path, enable_repository=enable_repository)
     return context["paper_session"].run_once()
