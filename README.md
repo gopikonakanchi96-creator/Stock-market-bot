@@ -125,3 +125,21 @@ python -m trading_bot.app.cli --mode send-daily-report --to gkkcsp2023@gmail.com
 ```
 
 If SMTP is not configured, the PDF is still created locally under `reports/`.
+
+## Data Retention
+
+Trading, reporting, and audit data are kept permanently by default:
+
+```yaml
+retention:
+  permanent: true
+  note: "Keep all trading, report, and audit data permanently unless manually archived."
+```
+
+No automated cleanup command is enabled. If you later want archival, add a separate archive job that exports data before deleting anything.
+
+The database initializer applies lightweight timestamp-column migrations useful for reporting and auditing:
+
+```powershell
+python -m trading_bot.database.init_db
+```

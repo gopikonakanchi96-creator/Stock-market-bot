@@ -89,6 +89,7 @@ class Trade(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
     realized_pl: Mapped[float] = mapped_column(Float, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class News(Base):
@@ -98,6 +99,7 @@ class News(Base):
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     headline: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Signal(Base):
@@ -107,6 +109,7 @@ class Signal(Base):
     decision: Mapped[str] = mapped_column(String(16), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class PortfolioHistory(Base):
@@ -137,6 +140,7 @@ class Backtest(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     metrics_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class RiskEvent(Base):
@@ -144,6 +148,7 @@ class RiskEvent(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     severity: Mapped[str] = mapped_column(String(32), nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class AuditLog(Base):
@@ -152,4 +157,3 @@ class AuditLog(Base):
     actor: Mapped[str] = mapped_column(String(80), nullable=False)
     action: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-

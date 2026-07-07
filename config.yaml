@@ -25,6 +25,10 @@ news:
     - Financial Modeling Prep
     - RSS feeds
 
+retention:
+  permanent: true
+  note: "Keep all trading, report, and audit data permanently unless manually archived."
+
 markets:
   US:
     enabled: true
