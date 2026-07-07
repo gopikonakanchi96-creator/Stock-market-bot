@@ -30,6 +30,8 @@ python -m trading_bot.app.cli --mode paper-sample --config config.yaml
 python -m trading_bot.app.cli --mode backtest --config config.yaml
 python -m trading_bot.app.cli --mode check-alpaca
 python -m trading_bot.app.cli --mode check-market-data --market US --symbol AAPL
+python -m trading_bot.app.cli --mode automation-health
+python -m trading_bot.app.cli --mode automation
 python -m trading_bot.app.cli --mode send-daily-report --to gkkcsp2023@gmail.com
 python -m trading_bot.app.cli --mode send-weekly-report --to gkkcsp2023@gmail.com
 python -m trading_bot.app.cli --mode send-monthly-report --to gkkcsp2023@gmail.com
@@ -44,6 +46,48 @@ docker compose up --build
 ```
 
 FastAPI docs: `http://localhost:8000/docs`
+
+## Automation
+
+Version 1 automation is paper-trading only. It refuses to run if `live_trading: true`.
+
+Check the scheduled jobs without starting the long-running process:
+
+```powershell
+python -m trading_bot.app.cli --mode automation-health
+```
+
+Start live market monitoring during market hours:
+
+```powershell
+python -m trading_bot.app.cli --mode automation
+```
+
+Docker option:
+
+```powershell
+docker compose --profile automation up --build
+```
+
+The automation runner:
+
+- scans enabled markets every `automation.scan_interval_minutes`
+- skips scans when all enabled markets are closed unless `run_outside_market_hours: true`
+- persists paper decisions to PostgreSQL
+- sends daily, weekly, monthly, and quarterly review reports
+- obeys `EMERGENCY_STOP`; if it is `true`, new buys are blocked
+
+For actual paper-trading decisions, set:
+
+```env
+EMERGENCY_STOP=false
+```
+
+Keep live trading disabled:
+
+```env
+ALLOW_LIVE_TRADING=false
+```
 
 ## Architecture
 

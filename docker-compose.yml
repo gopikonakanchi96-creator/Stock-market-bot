@@ -6,6 +6,25 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://trader:trader@postgres:5432/trading_bot
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/app
+
+  automation:
+    build: .
+    command: python -m trading_bot.app.cli --mode automation
+    profiles:
+      - automation
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://trader:trader@postgres:5432/trading_bot
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       - postgres
       - redis
@@ -30,4 +49,3 @@ services:
 
 volumes:
   postgres_data:
-

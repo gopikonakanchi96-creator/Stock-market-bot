@@ -36,6 +36,18 @@ class StrategySettings:
 
 
 @dataclass(frozen=True)
+class AutomationSettings:
+    enabled: bool
+    scan_interval_minutes: int
+    run_outside_market_hours: bool
+    daily_report_hour: int
+    daily_report_minute: int
+    weekly_report_day: str
+    report_to: str
+    timezone: str
+
+
+@dataclass(frozen=True)
 class AppSettings:
     app_name: str
     base_currency: str
@@ -50,6 +62,7 @@ class AppSettings:
     redis_url: str
     market_data_provider_priority: list[str]
     paper_starting_balances: dict[str, float]
+    automation: AutomationSettings
 
 
 def _parse_scalar(value: str) -> Any:
@@ -141,6 +154,7 @@ def load_settings(path: str | Path = "config.yaml") -> AppSettings:
 
     risk_raw = raw.get("risk", {})
     strategy_raw = raw.get("strategy", {})
+    automation_raw = raw.get("automation", {})
     return AppSettings(
         app_name=str(raw.get("app_name", "AI Trading Bot")),
         base_currency=str(raw.get("base_currency", "USD")),
@@ -179,4 +193,14 @@ def load_settings(path: str | Path = "config.yaml") -> AppSettings:
             key: float(value)
             for key, value in ((raw.get("paper_trading_config") or {}).get("starting_balances", {"USD": 100_000, "INR": 1_000_000})).items()
         },
+        automation=AutomationSettings(
+            enabled=bool(automation_raw.get("enabled", False)),
+            scan_interval_minutes=int(automation_raw.get("scan_interval_minutes", 15)),
+            run_outside_market_hours=bool(automation_raw.get("run_outside_market_hours", False)),
+            daily_report_hour=int(automation_raw.get("daily_report_hour", 17)),
+            daily_report_minute=int(automation_raw.get("daily_report_minute", 0)),
+            weekly_report_day=str(automation_raw.get("weekly_report_day", "fri")),
+            report_to=os.getenv("DAILY_REPORT_TO", str(automation_raw.get("report_to", "gkkcsp2023@gmail.com"))),
+            timezone=os.getenv("REPORT_TIMEZONE", str(automation_raw.get("timezone", "America/Chicago"))),
+        ),
     )

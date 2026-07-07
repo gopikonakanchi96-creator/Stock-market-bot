@@ -29,6 +29,16 @@ retention:
   permanent: true
   note: "Keep all trading, report, and audit data permanently unless manually archived."
 
+automation:
+  enabled: true
+  scan_interval_minutes: 15
+  run_outside_market_hours: false
+  daily_report_hour: 17
+  daily_report_minute: 0
+  weekly_report_day: fri
+  report_to: gkkcsp2023@gmail.com
+  timezone: America/Chicago
+
 markets:
   US:
     enabled: true

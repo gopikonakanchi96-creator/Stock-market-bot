@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 
+from trading_bot.app.automation import automation_health, market_summaries, run_automation
 from trading_bot.app.paper_session import run_sample_paper_session
 from trading_bot.backtesting.engine import sample_backtest
 from trading_bot.brokers.connection_check import check_alpaca_paper_connection
@@ -12,36 +13,7 @@ from trading_bot.config.settings import load_settings
 from trading_bot.database.repositories import TradingRepository
 from trading_bot.market_data.service import EnterpriseMarketDataService
 from trading_bot.notifications import EmailService
-from trading_bot.reporting import DailyReportBuilder, MarketSummary
-
-
-def _market_summaries(settings, service: EnterpriseMarketDataService) -> list[MarketSummary]:
-    summaries: list[MarketSummary] = []
-    for market_code, market in settings.markets.items():
-        if not market.enabled:
-            continue
-        for symbol in settings.watchlists.get(market_code, [])[:8]:
-            indicators = service.indicators(symbol, market)
-            if indicators is None or indicators.previous_close <= 0 or indicators.average_volume <= 0:
-                continue
-            summaries.append(
-                MarketSummary(
-                    market=market_code,
-                    symbol=symbol,
-                    current_price=indicators.current_price,
-                    daily_change_pct=(
-                        (indicators.current_price - indicators.previous_close) / indicators.previous_close
-                    )
-                    * 100,
-                    volume_ratio=indicators.volume / indicators.average_volume,
-                    rsi=indicators.rsi,
-                    trend=indicators.trend,
-                    macd=indicators.macd,
-                    macd_signal=indicators.macd_signal,
-                    provider=service.last_provider_name,
-                )
-            )
-    return summaries
+from trading_bot.reporting import DailyReportBuilder
 
 
 def main() -> None:
@@ -53,6 +25,8 @@ def main() -> None:
             "backtest",
             "check-alpaca",
             "check-market-data",
+            "automation-health",
+            "automation",
             "send-daily-report",
             "send-weekly-report",
             "send-monthly-report",
@@ -68,6 +42,10 @@ def main() -> None:
     args = parser.parse_args()
     if args.mode == "check-alpaca":
         print(json.dumps(check_alpaca_paper_connection(), indent=2))
+    elif args.mode == "automation-health":
+        print(json.dumps(automation_health(args.config), indent=2, default=str))
+    elif args.mode == "automation":
+        run_automation(args.config)
     elif args.mode == "check-market-data":
         load_env_file()
         settings = load_settings(args.config)
@@ -104,7 +82,7 @@ def main() -> None:
             balances=settings.paper_starting_balances,
             base_currency=settings.base_currency,
             us_market_status="open" if us_status["is_open"] else "closed",
-            market_summaries=_market_summaries(settings, market_service),
+            market_summaries=market_summaries(settings, market_service),
             report_type=report_type,
             timezone_name=os.getenv("REPORT_TIMEZONE", "America/Chicago"),
         )
