@@ -8,6 +8,7 @@ from trading_bot.backtesting.engine import sample_backtest
 from trading_bot.brokers.connection_check import check_alpaca_paper_connection
 from trading_bot.config.env import load_env_file
 from trading_bot.config.settings import load_settings
+from trading_bot.database.repositories import TradingRepository
 from trading_bot.market_data.service import EnterpriseMarketDataService
 from trading_bot.notifications import EmailService
 from trading_bot.reporting import DailyReportBuilder
@@ -57,10 +58,10 @@ def main() -> None:
         market_service = EnterpriseMarketDataService(settings.strategy, settings.market_data_provider_priority)
         us_status = market_service.exchange_status(settings.markets["US"])
         builder = DailyReportBuilder()
-        report = builder.build(
+        report = builder.build_from_repository(
+            repository=TradingRepository.from_config(args.config),
             recipient=args.to,
             balances=settings.paper_starting_balances,
-            portfolio_value_base=settings.paper_starting_balances.get(settings.base_currency, 0.0),
             base_currency=settings.base_currency,
             us_market_status="open" if us_status["is_open"] else "closed",
         )

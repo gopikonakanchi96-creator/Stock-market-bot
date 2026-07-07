@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, is_dataclass
-from datetime import datetime
+from datetime import date, datetime, time
 from typing import Any
 
 from sqlalchemy import create_engine
@@ -164,3 +164,78 @@ class TradingRepository:
                 "audit_logs": session.query(AuditLog).count(),
             }
 
+    def daily_report_data(self, report_date: date) -> dict[str, Any]:
+        start = datetime.combine(report_date, time.min)
+        end = datetime.combine(report_date, time.max)
+        with self.session_factory() as session:
+            orders = (
+                session.query(Order)
+                .filter(Order.created_at >= start, Order.created_at <= end)
+                .order_by(Order.created_at.asc())
+                .all()
+            )
+            trades = session.query(Trade).filter(Trade.created_at >= start, Trade.created_at <= end).all()
+            trade_pnl_by_order: dict[int, float] = {}
+            for trade in trades:
+                trade_pnl_by_order[trade.order_id] = trade_pnl_by_order.get(trade.order_id, 0.0) + float(trade.realized_pl or 0.0)
+
+            positions = session.query(PositionModel).order_by(PositionModel.symbol.asc()).all()
+            latest_portfolio = (
+                session.query(PortfolioHistory)
+                .filter(PortfolioHistory.timestamp <= end)
+                .order_by(PortfolioHistory.timestamp.desc())
+                .first()
+            )
+            signals = (
+                session.query(Signal)
+                .filter(Signal.created_at >= start, Signal.created_at <= end)
+                .order_by(Signal.created_at.asc())
+                .all()
+            )
+            risk_events = (
+                session.query(RiskEvent)
+                .filter(RiskEvent.created_at >= start, RiskEvent.created_at <= end)
+                .order_by(RiskEvent.created_at.asc())
+                .all()
+            )
+            return {
+                "orders": [
+                    {
+                        "symbol": order.symbol,
+                        "side": order.side,
+                        "quantity": order.quantity,
+                        "price": order.price,
+                        "currency": order.currency,
+                        "status": order.status,
+                        "reason": order.reason,
+                        "pnl": trade_pnl_by_order.get(order.id, 0.0),
+                        "created_at": order.created_at,
+                    }
+                    for order in orders
+                ],
+                "positions": [
+                    {
+                        "symbol": position.symbol,
+                        "country": position.country,
+                        "exchange": position.exchange,
+                        "currency": position.currency,
+                        "quantity": position.quantity,
+                        "entry_price": position.entry_price,
+                        "current_price": position.current_price,
+                        "highest_price": position.highest_price,
+                        "stop_loss": position.stop_loss,
+                        "profit_lock": position.profit_lock,
+                    }
+                    for position in positions
+                ],
+                "portfolio_value": float(latest_portfolio.value) if latest_portfolio else 0.0,
+                "portfolio_base_currency": latest_portfolio.base_currency if latest_portfolio else "USD",
+                "signal_counts": {
+                    decision: sum(1 for signal in signals if signal.decision == decision)
+                    for decision in sorted({signal.decision for signal in signals})
+                },
+                "risk_events": [
+                    {"severity": event.severity, "reason": event.reason, "created_at": event.created_at}
+                    for event in risk_events
+                ],
+            }

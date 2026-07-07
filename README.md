@@ -46,7 +46,7 @@ FastAPI docs: `http://localhost:8000/docs`
 
 `trading_bot/` is split into replaceable services:
 
-- `market_data`: provider-priority service with cache and failover. Default priority is Finnhub, Polygon, Alpha Vantage, Twelve Data, then deterministic fallback.
+- `market_data`: provider-priority service with cache and failover. Default priority is Polygon, Finnhub, Alpha Vantage, Twelve Data, then deterministic fallback.
 - `news`: provider-priority collection, deduplication, freshness, reliability, and sentiment input.
 - `ai`: AI analysis service that summarizes/reasons/recommends but never executes trades.
 - `paper_broker`: internal virtual broker for no-real-money simulation.
@@ -93,7 +93,7 @@ Execution Engine
 
 ## Daily Email Reports
 
-The bot can generate a daily PDF report and email it to `gkkcsp2023@gmail.com`.
+The bot can generate a daily PDF report from PostgreSQL and email it to `gkkcsp2023@gmail.com`.
 
 The report includes:
 
@@ -105,6 +105,7 @@ The report includes:
 - portfolio value
 - US market status
 - no-trade explanation when no trades occurred
+- signal counts, risk events, and open positions stored in the database
 
 Configure SMTP in `.env`. For Gmail, use a Google app password, not your normal Gmail password:
 
@@ -122,6 +123,13 @@ Generate and send:
 
 ```powershell
 python -m trading_bot.app.cli --mode send-daily-report --to gkkcsp2023@gmail.com
+```
+
+Before sending, initialize PostgreSQL and run the bot with persistence enabled so the report has real repository data:
+
+```powershell
+python -m trading_bot.database.init_db
+python -m trading_bot.app.cli --mode paper-sample --persist
 ```
 
 If SMTP is not configured, the PDF is still created locally under `reports/`.
