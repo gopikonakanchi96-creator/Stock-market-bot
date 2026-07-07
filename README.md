@@ -31,6 +31,9 @@ python -m trading_bot.app.cli --mode backtest --config config.yaml
 python -m trading_bot.app.cli --mode check-alpaca
 python -m trading_bot.app.cli --mode check-market-data --market US --symbol AAPL
 python -m trading_bot.app.cli --mode send-daily-report --to gkkcsp2023@gmail.com
+python -m trading_bot.app.cli --mode send-weekly-report --to gkkcsp2023@gmail.com
+python -m trading_bot.app.cli --mode send-monthly-report --to gkkcsp2023@gmail.com
+python -m trading_bot.app.cli --mode send-quarterly-report --to gkkcsp2023@gmail.com
 uvicorn trading_bot.api.main:app --reload
 ```
 
@@ -93,14 +96,17 @@ Execution Engine
 
 ## Daily Email Reports
 
-The bot can generate a daily PDF report from PostgreSQL and email it to `gkkcsp2023@gmail.com`.
+The bot can generate daily, weekly, monthly, and quarterly PDF review reports from PostgreSQL and email them to `gkkcsp2023@gmail.com`.
 
-The report includes:
+The report is summary-first, not a raw database dump. It includes:
 
 - date and weekday
-- daily order list
-- order status and reason
-- profit/loss explanation
+- report period
+- how watched markets moved
+- good signs and bad signs
+- AI-style analysis of signals, risk events, and market movement
+- what should be improved before increasing trade size
+- compact trading activity totals
 - balances by currency
 - portfolio value
 - US market status
@@ -117,13 +123,19 @@ SMTP_PASSWORD=your_gmail_app_password
 SMTP_FROM_EMAIL=your_email@gmail.com
 SMTP_USE_TLS=true
 DAILY_REPORT_TO=gkkcsp2023@gmail.com
+REPORT_TIMEZONE=America/Chicago
 ```
 
-Generate and send:
+Generate and send current-date reports:
 
 ```powershell
 python -m trading_bot.app.cli --mode send-daily-report --to gkkcsp2023@gmail.com
+python -m trading_bot.app.cli --mode send-weekly-report --to gkkcsp2023@gmail.com
+python -m trading_bot.app.cli --mode send-monthly-report --to gkkcsp2023@gmail.com
+python -m trading_bot.app.cli --mode send-quarterly-report --to gkkcsp2023@gmail.com
 ```
+
+The report date uses `REPORT_TIMEZONE`, defaulting to `America/Chicago`, so evening reports stay on the current local trading day while still reading UTC database timestamps correctly.
 
 Before sending, initialize PostgreSQL and run the bot with persistence enabled so the report has real repository data:
 

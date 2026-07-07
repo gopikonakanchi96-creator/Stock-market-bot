@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, is_dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -164,9 +165,11 @@ class TradingRepository:
                 "audit_logs": session.query(AuditLog).count(),
             }
 
-    def daily_report_data(self, report_date: date) -> dict[str, Any]:
-        start = datetime.combine(report_date, time.min)
-        end = datetime.combine(report_date, time.max)
+    def daily_report_data(self, report_date: date, timezone_name: str = "America/Chicago") -> dict[str, Any]:
+        start, end = self._utc_window(report_date, report_date, timezone_name)
+        return self.period_report_data(start, end)
+
+    def period_report_data(self, start: datetime, end: datetime) -> dict[str, Any]:
         with self.session_factory() as session:
             orders = (
                 session.query(Order)
@@ -177,7 +180,9 @@ class TradingRepository:
             trades = session.query(Trade).filter(Trade.created_at >= start, Trade.created_at <= end).all()
             trade_pnl_by_order: dict[int, float] = {}
             for trade in trades:
-                trade_pnl_by_order[trade.order_id] = trade_pnl_by_order.get(trade.order_id, 0.0) + float(trade.realized_pl or 0.0)
+                trade_pnl_by_order[trade.order_id] = trade_pnl_by_order.get(trade.order_id, 0.0) + float(
+                    trade.realized_pl or 0.0
+                )
 
             positions = session.query(PositionModel).order_by(PositionModel.symbol.asc()).all()
             latest_portfolio = (
@@ -234,8 +239,37 @@ class TradingRepository:
                     decision: sum(1 for signal in signals if signal.decision == decision)
                     for decision in sorted({signal.decision for signal in signals})
                 },
+                "signal_reasons": [
+                    {
+                        "symbol": signal.symbol,
+                        "decision": signal.decision,
+                        "confidence": signal.confidence,
+                        "reason": signal.reason,
+                    }
+                    for signal in signals[-10:]
+                ],
                 "risk_events": [
                     {"severity": event.severity, "reason": event.reason, "created_at": event.created_at}
                     for event in risk_events
                 ],
             }
+
+    def review_report_data(self, end_date: date, days: int, timezone_name: str = "America/Chicago") -> dict[str, Any]:
+        start_date = end_date - timedelta(days=days - 1)
+        start, end = self._utc_window(start_date, end_date, timezone_name)
+        return self.period_report_data(start, end)
+
+    def date_range_report_data(
+        self, start_date: date, end_date: date, timezone_name: str = "America/Chicago"
+    ) -> dict[str, Any]:
+        start, end = self._utc_window(start_date, end_date, timezone_name)
+        return self.period_report_data(start, end)
+
+    def _utc_window(self, start_date: date, end_date: date, timezone_name: str) -> tuple[datetime, datetime]:
+        local_zone = ZoneInfo(timezone_name)
+        local_start = datetime.combine(start_date, time.min, tzinfo=local_zone)
+        local_end = datetime.combine(end_date, time.max, tzinfo=local_zone)
+        return (
+            local_start.astimezone(timezone.utc).replace(tzinfo=None),
+            local_end.astimezone(timezone.utc).replace(tzinfo=None),
+        )
