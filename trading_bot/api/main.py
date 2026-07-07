@@ -6,6 +6,7 @@ except ImportError:
     FastAPI = None
 
 from trading_bot.app.paper_session import build_application_context
+from trading_bot.options import OptionsAnalysisService
 
 
 def create_app():
@@ -13,6 +14,7 @@ def create_app():
         raise RuntimeError("FastAPI is not installed. Run: pip install -r requirements.txt")
     app = FastAPI(title="AI Multi-Currency Trading Bot", version="1.0.0")
     context = build_application_context()
+    options_service = OptionsAnalysisService(context["settings"].options)
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -60,6 +62,14 @@ def create_app():
     @app.get("/ai-decisions/{market_code}/{symbol}")
     def ai_decision(market_code: str, symbol: str) -> dict[str, object]:
         return context["paper_session"].analyze_symbol(market_code, symbol, execute=False)
+
+    @app.get("/options/dashboard")
+    def options_dashboard() -> dict[str, object]:
+        return options_service.dashboard_summary().__dict__
+
+    @app.get("/options/analyze/{symbol}")
+    def options_analyze(symbol: str) -> dict[str, object]:
+        return options_service.analyze_symbol(symbol.upper())
 
     @app.get("/news/{market_code}/{symbol}")
     def news_feed(market_code: str, symbol: str) -> dict[str, object]:

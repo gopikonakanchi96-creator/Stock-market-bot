@@ -39,6 +39,20 @@ automation:
   report_to: gkkcsp2023@gmail.com
   timezone: America/Chicago
 
+options:
+  enabled: true
+  analysis_only: true
+  watchlist:
+    - AAPL
+    - MSFT
+    - NVDA
+    - TSLA
+  min_days_to_expiration: 14
+  max_days_to_expiration: 60
+  max_contract_price: 10
+  min_open_interest: 100
+  min_volume: 50
+
 markets:
   US:
     enabled: true

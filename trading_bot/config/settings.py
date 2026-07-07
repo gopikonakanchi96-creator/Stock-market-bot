@@ -48,6 +48,18 @@ class AutomationSettings:
 
 
 @dataclass(frozen=True)
+class OptionsSettings:
+    enabled: bool
+    analysis_only: bool
+    watchlist: list[str]
+    min_days_to_expiration: int
+    max_days_to_expiration: int
+    max_contract_price: float
+    min_open_interest: int
+    min_volume: int
+
+
+@dataclass(frozen=True)
 class AppSettings:
     app_name: str
     base_currency: str
@@ -63,6 +75,7 @@ class AppSettings:
     market_data_provider_priority: list[str]
     paper_starting_balances: dict[str, float]
     automation: AutomationSettings
+    options: OptionsSettings
 
 
 def _parse_scalar(value: str) -> Any:
@@ -155,6 +168,7 @@ def load_settings(path: str | Path = "config.yaml") -> AppSettings:
     risk_raw = raw.get("risk", {})
     strategy_raw = raw.get("strategy", {})
     automation_raw = raw.get("automation", {})
+    options_raw = raw.get("options", {})
     return AppSettings(
         app_name=str(raw.get("app_name", "AI Trading Bot")),
         base_currency=str(raw.get("base_currency", "USD")),
@@ -202,5 +216,15 @@ def load_settings(path: str | Path = "config.yaml") -> AppSettings:
             weekly_report_day=str(automation_raw.get("weekly_report_day", "fri")),
             report_to=os.getenv("DAILY_REPORT_TO", str(automation_raw.get("report_to", "gkkcsp2023@gmail.com"))),
             timezone=os.getenv("REPORT_TIMEZONE", str(automation_raw.get("timezone", "America/Chicago"))),
+        ),
+        options=OptionsSettings(
+            enabled=bool(options_raw.get("enabled", False)),
+            analysis_only=bool(options_raw.get("analysis_only", True)),
+            watchlist=list(options_raw.get("watchlist", [])),
+            min_days_to_expiration=int(options_raw.get("min_days_to_expiration", 14)),
+            max_days_to_expiration=int(options_raw.get("max_days_to_expiration", 60)),
+            max_contract_price=float(options_raw.get("max_contract_price", 10.0)),
+            min_open_interest=int(options_raw.get("min_open_interest", 100)),
+            min_volume=int(options_raw.get("min_volume", 50)),
         ),
     )

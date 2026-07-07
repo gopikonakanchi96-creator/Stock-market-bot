@@ -13,6 +13,7 @@ from trading_bot.config.settings import load_settings
 from trading_bot.database.repositories import TradingRepository
 from trading_bot.market_data.service import EnterpriseMarketDataService
 from trading_bot.notifications import EmailService
+from trading_bot.options import OptionsAnalysisService
 from trading_bot.reporting import DailyReportBuilder
 
 
@@ -27,6 +28,8 @@ def main() -> None:
             "check-market-data",
             "automation-health",
             "automation",
+            "options-dashboard",
+            "options-analyze",
             "send-daily-report",
             "send-weekly-report",
             "send-monthly-report",
@@ -46,6 +49,14 @@ def main() -> None:
         print(json.dumps(automation_health(args.config), indent=2, default=str))
     elif args.mode == "automation":
         run_automation(args.config)
+    elif args.mode == "options-dashboard":
+        load_env_file()
+        settings = load_settings(args.config)
+        print(json.dumps(OptionsAnalysisService(settings.options).dashboard_summary().__dict__, indent=2, default=str))
+    elif args.mode == "options-analyze":
+        load_env_file()
+        settings = load_settings(args.config)
+        print(json.dumps(OptionsAnalysisService(settings.options).analyze_symbol(args.symbol.upper()), indent=2))
     elif args.mode == "check-market-data":
         load_env_file()
         settings = load_settings(args.config)

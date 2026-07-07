@@ -77,6 +77,22 @@ The automation runner:
 - sends daily, weekly, monthly, and quarterly review reports
 - obeys `EMERGENCY_STOP`; if it is `true`, new buys are blocked
 
+Options are separated from stock trading. Version 1 includes an options dashboard in analysis-only mode:
+
+```powershell
+python -m trading_bot.app.cli --mode options-dashboard
+python -m trading_bot.app.cli --mode options-analyze --symbol AAPL
+```
+
+API endpoints:
+
+```text
+GET /options/dashboard
+GET /options/analyze/{symbol}
+```
+
+The options module does not place trades. It is prepared for an options-chain provider and will only emit warnings and next steps until real chain data, Greeks, spread checks, and liquidity filters are added.
+
 For actual paper-trading decisions, set:
 
 ```env
