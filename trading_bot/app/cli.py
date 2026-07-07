@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from datetime import date
 
 from trading_bot.app.automation import automation_health, market_summaries, run_automation
 from trading_bot.app.paper_session import run_sample_paper_session
@@ -13,7 +14,14 @@ from trading_bot.config.settings import load_settings
 from trading_bot.database.repositories import TradingRepository
 from trading_bot.market_data.service import EnterpriseMarketDataService
 from trading_bot.notifications import EmailService
-from trading_bot.options import OptionsAnalysisService
+from trading_bot.options import (
+    OptionContract,
+    OptionOrderRequest,
+    OptionSide,
+    OptionType,
+    OptionsAnalysisService,
+    VirtualOptionsBroker,
+)
 from trading_bot.reporting import DailyReportBuilder
 
 
@@ -30,6 +38,8 @@ def main() -> None:
             "automation",
             "options-dashboard",
             "options-analyze",
+            "options-paper-buy",
+            "options-paper-sell",
             "send-daily-report",
             "send-weekly-report",
             "send-monthly-report",
@@ -40,6 +50,11 @@ def main() -> None:
     parser.add_argument("--config", default="config.yaml")
     parser.add_argument("--market", default="US")
     parser.add_argument("--symbol", default="AAPL")
+    parser.add_argument("--contract-type", choices=["CALL", "PUT"], default="CALL")
+    parser.add_argument("--strike", type=float, default=0.0)
+    parser.add_argument("--expiration", default="")
+    parser.add_argument("--premium", type=float, default=0.0)
+    parser.add_argument("--quantity", type=int, default=1)
     parser.add_argument("--to", default="gkkcsp2023@gmail.com")
     parser.add_argument("--persist", action="store_true", help="Write runtime decisions to PostgreSQL")
     args = parser.parse_args()
@@ -57,6 +72,29 @@ def main() -> None:
         load_env_file()
         settings = load_settings(args.config)
         print(json.dumps(OptionsAnalysisService(settings.options).analyze_symbol(args.symbol.upper()), indent=2))
+    elif args.mode in {"options-paper-buy", "options-paper-sell"}:
+        load_env_file()
+        settings = load_settings(args.config)
+        if not settings.options.paper_trading_enabled:
+            raise RuntimeError("Options paper trading is disabled in config.yaml.")
+        if args.strike <= 0 or args.premium <= 0 or not args.expiration:
+            raise RuntimeError("--strike, --premium, and --expiration YYYY-MM-DD are required.")
+        broker = VirtualOptionsBroker(
+            starting_cash=settings.options.starting_cash,
+            commission_per_contract=settings.options.commission_per_contract,
+        )
+        contract = OptionContract(
+            underlying=args.symbol.upper(),
+            contract_type=OptionType(args.contract_type),
+            strike=args.strike,
+            expiration=date.fromisoformat(args.expiration),
+            premium=args.premium,
+        )
+        side = OptionSide.BUY if args.mode == "options-paper-buy" else OptionSide.SELL
+        result = broker.submit_order(
+            OptionOrderRequest(contract=contract, side=side, quantity=args.quantity, reason="manual options paper order")
+        )
+        print(json.dumps({"result": result.__dict__, "portfolio": broker.summary()}, indent=2, default=str))
     elif args.mode == "check-market-data":
         load_env_file()
         settings = load_settings(args.config)

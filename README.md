@@ -77,11 +77,12 @@ The automation runner:
 - sends daily, weekly, monthly, and quarterly review reports
 - obeys `EMERGENCY_STOP`; if it is `true`, new buys are blocked
 
-Options are separated from stock trading. Version 1 includes an options dashboard in analysis-only mode:
+Options are separated from stock trading. Version 1 includes an options dashboard plus virtual paper options trading:
 
 ```powershell
 python -m trading_bot.app.cli --mode options-dashboard
 python -m trading_bot.app.cli --mode options-analyze --symbol AAPL
+python -m trading_bot.app.cli --mode options-paper-buy --symbol AAPL --contract-type CALL --strike 300 --expiration 2026-08-21 --premium 2.50 --quantity 1
 ```
 
 API endpoints:
@@ -89,9 +90,11 @@ API endpoints:
 ```text
 GET /options/dashboard
 GET /options/analyze/{symbol}
+GET /options/paper/portfolio
+POST /options/paper/order
 ```
 
-The options module does not place trades. It is prepared for an options-chain provider and will only emit warnings and next steps until real chain data, Greeks, spread checks, and liquidity filters are added.
+The options module places **virtual paper options trades only**. It does not send live options orders. Automated options selection still needs real chain data, Greeks, spread checks, and liquidity filters.
 
 For actual paper-trading decisions, set:
 

@@ -23,6 +23,10 @@ class OptionsAnalysisService:
             warnings.append("Options analysis is disabled in config.yaml.")
         if self.settings.analysis_only:
             warnings.append("Options are analysis-only. The bot will not place options trades.")
+        elif self.settings.paper_trading_enabled:
+            warnings.append("Options paper trading is enabled. Live options trading is not implemented.")
+        else:
+            warnings.append("Options execution is disabled.")
         warnings.append("No real options-chain provider is configured yet, so no tradable contracts are emitted.")
 
         next_steps.extend(
@@ -36,6 +40,7 @@ class OptionsAnalysisService:
         return OptionsDashboardSummary(
             enabled=self.settings.enabled,
             analysis_only=self.settings.analysis_only,
+            paper_trading_enabled=self.settings.paper_trading_enabled,
             watchlist=self.settings.watchlist,
             total_candidates=len(opportunities),
             opportunities=opportunities,
@@ -49,6 +54,7 @@ class OptionsAnalysisService:
                 "symbol": symbol,
                 "status": "not_in_options_watchlist",
                 "analysis_only": self.settings.analysis_only,
+                "paper_trading_enabled": self.settings.paper_trading_enabled,
                 "opportunities": [],
                 "warnings": [f"{symbol} is not in options.watchlist."],
             }
@@ -56,10 +62,11 @@ class OptionsAnalysisService:
             "symbol": symbol,
             "status": "provider_required",
             "analysis_only": self.settings.analysis_only,
+            "paper_trading_enabled": self.settings.paper_trading_enabled,
             "opportunities": [],
             "warnings": [
                 "Options-chain provider is not configured yet.",
-                "No options trades will be placed.",
+                "Manual paper options orders are supported; automated options selection needs chain data.",
             ],
             "filters": {
                 "min_days_to_expiration": self.settings.min_days_to_expiration,
@@ -69,4 +76,3 @@ class OptionsAnalysisService:
                 "min_volume": self.settings.min_volume,
             },
         }
-

@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+from datetime import date
+
 try:
     from fastapi import FastAPI
 except ImportError:
     FastAPI = None
 
 from trading_bot.app.paper_session import build_application_context
-from trading_bot.options import OptionsAnalysisService
+from trading_bot.options import (
+    OptionContract,
+    OptionOrderRequest,
+    OptionSide,
+    OptionType,
+    OptionsAnalysisService,
+    VirtualOptionsBroker,
+)
 
 
 def create_app():
@@ -15,6 +24,10 @@ def create_app():
     app = FastAPI(title="AI Multi-Currency Trading Bot", version="1.0.0")
     context = build_application_context()
     options_service = OptionsAnalysisService(context["settings"].options)
+    options_broker = VirtualOptionsBroker(
+        starting_cash=context["settings"].options.starting_cash,
+        commission_per_contract=context["settings"].options.commission_per_contract,
+    )
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -70,6 +83,31 @@ def create_app():
     @app.get("/options/analyze/{symbol}")
     def options_analyze(symbol: str) -> dict[str, object]:
         return options_service.analyze_symbol(symbol.upper())
+
+    @app.get("/options/paper/portfolio")
+    def options_paper_portfolio() -> dict[str, object]:
+        return options_broker.summary()
+
+    @app.post("/options/paper/order")
+    def options_paper_order(payload: dict[str, object]) -> dict[str, object]:
+        settings = context["settings"].options
+        if not settings.paper_trading_enabled:
+            return {"accepted": False, "reason": "Options paper trading is disabled."}
+        contract = OptionContract(
+            underlying=str(payload["underlying"]).upper(),
+            contract_type=OptionType(str(payload["contract_type"]).upper()),
+            strike=float(payload["strike"]),
+            expiration=date.fromisoformat(str(payload["expiration"])),
+            premium=float(payload["premium"]),
+        )
+        request = OptionOrderRequest(
+            contract=contract,
+            side=OptionSide(str(payload["side"]).upper()),
+            quantity=int(payload.get("quantity", 1)),
+            reason=str(payload.get("reason", "dashboard options paper order")),
+        )
+        result = options_broker.submit_order(request)
+        return {"result": result.__dict__, "portfolio": options_broker.summary()}
 
     @app.get("/news/{market_code}/{symbol}")
     def news_feed(market_code: str, symbol: str) -> dict[str, object]:

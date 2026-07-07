@@ -41,7 +41,10 @@ automation:
 
 options:
   enabled: true
-  analysis_only: true
+  analysis_only: false
+  paper_trading_enabled: true
+  starting_cash: 25000
+  commission_per_contract: 0.65
   watchlist:
     - AAPL
     - MSFT

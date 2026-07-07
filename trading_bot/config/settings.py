@@ -51,6 +51,9 @@ class AutomationSettings:
 class OptionsSettings:
     enabled: bool
     analysis_only: bool
+    paper_trading_enabled: bool
+    starting_cash: float
+    commission_per_contract: float
     watchlist: list[str]
     min_days_to_expiration: int
     max_days_to_expiration: int
@@ -220,6 +223,9 @@ def load_settings(path: str | Path = "config.yaml") -> AppSettings:
         options=OptionsSettings(
             enabled=bool(options_raw.get("enabled", False)),
             analysis_only=bool(options_raw.get("analysis_only", True)),
+            paper_trading_enabled=bool(options_raw.get("paper_trading_enabled", False)),
+            starting_cash=float(options_raw.get("starting_cash", 25_000)),
+            commission_per_contract=float(options_raw.get("commission_per_contract", 0.65)),
             watchlist=list(options_raw.get("watchlist", [])),
             min_days_to_expiration=int(options_raw.get("min_days_to_expiration", 14)),
             max_days_to_expiration=int(options_raw.get("max_days_to_expiration", 60)),
